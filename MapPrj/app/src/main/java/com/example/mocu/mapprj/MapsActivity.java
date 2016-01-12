@@ -32,7 +32,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int DEFAULT_DIV_SCALE = 10;
     LocationManager logMgr;
     String bestProv;
-    int time =  5 * 1000;
+    int time = 5 * 1000;
+    boolean flag = false;   //判斷是否開始倒數，如果開始倒數不再重新判斷是否倒數
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +50,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         Criteria criteria = new Criteria();
         bestProv = logMgr.getBestProvider(criteria, true);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        Location location = logMgr.getLastKnownLocation(bestProv);
+
+        getLocation(location);
 
     }
 
@@ -95,37 +103,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .fillColor(Color.parseColor("#500084d3")));
     }
 
+    public void getLocation(Location location) {
+        Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
+        boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
+
+            if (isok) {  //如果在範圍內
+                Toast.makeText(this, "在指定範圍內", Toast.LENGTH_SHORT).show();
+                while(flag == false) {
+                    flag = true;
+                    new CountDownTimer(time, 1000) {    //進行倒數設置
+                        @Override
+                        public void onTick(long l) {
+                            long x = l / 60000; //分
+                            long y = ((l / 1000) - (x * 60));       //秒
+                            mtxtView.setText("搜索中:" + x + ":" + y);
+                        }
+
+
+                        @Override
+                        public void onFinish() {
+                            mtxtView.setText("搜索完成");
+                        }
+                    }.start();
+                }
+
+            } else {
+                Toast.makeText(this, "沒有在指定範圍內", Toast.LENGTH_SHORT).show();
+                mtxtView.setText("沒有在指定範圍內");
+            }
+    }
 
     @Override
     public void onLocationChanged(Location location) {
-//        String x = "緯度:" + Double.toString(location.getLatitude());
-        String x = Double.toString(location.getLatitude());
-
-        Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
+//        Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
         LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(point, 17));
-
-        boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
-        if (isok) {
-            Toast.makeText(this, "在指定範圍內", Toast.LENGTH_LONG).show();
-            new CountDownTimer(time, 1000) {
-                @Override
-                public void onTick(long l) {
-                    long x = l / 60000; //分
-                    long y = ((l / 1000) - (x * 60));       //秒
-                    mtxtView.setText("搜索中:" + x + ":" + y);
-                }
-
-                @Override
-                public void onFinish() {
-                    mtxtView.setText("搜索完成");
-                }
-            }.start();
-
-        } else {
-            Toast.makeText(this, "沒有在指定範圍內", Toast.LENGTH_LONG).show();
-            mtxtView.setText("沒有在指定範圍內");
-        }
+        getLocation(location);
     }
 
     @Override
