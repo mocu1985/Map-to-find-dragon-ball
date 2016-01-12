@@ -32,8 +32,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int DEFAULT_DIV_SCALE = 10;
     LocationManager logMgr;
     String bestProv;
-    int time = 5 * 1000;
+    long time = 10 * 1000;
+    int time2 = 5 * 1000;     //定位喪失時的緩衝時間
     boolean flag = false;   //判斷是否開始倒數，如果開始倒數不再重新判斷是否倒數
+    boolean flagEnd = false;        //判斷倒數是否完成，若完成則不再進行倒數
+    CountDownTimer timer;
 
 
     @Override
@@ -55,7 +58,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         Location location = logMgr.getLastKnownLocation(bestProv);
 
-        getLocation(location);
+        checkLocation(location);
 
     }
 
@@ -103,42 +106,42 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .fillColor(Color.parseColor("#500084d3")));
     }
 
-    public void getLocation(Location location) {
+    public void checkLocation(Location location) {
         Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
-        boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
+        final boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
 
             if (isok) {  //如果在範圍內
                 Toast.makeText(this, "在指定範圍內", Toast.LENGTH_SHORT).show();
-                while(flag == false) {
+                while(flag == false && flagEnd == false) {  //判斷範圍位置及倒數有無完成  並禁止再次倒數
                     flag = true;
-                    new CountDownTimer(time, 1000) {    //進行倒數設置
+                    timer = new CountDownTimer(time, 1000) {    //進行倒數設置
                         @Override
-                        public void onTick(long l) {
-                            long x = l / 60000; //分
-                            long y = ((l / 1000) - (x * 60));       //秒
+                        public void onTick(long lastTime) {
+                            long x = lastTime / 60000; //分
+                            long y = ((lastTime / 1000) - (x * 60));       //秒
                             mtxtView.setText("搜索中:" + x + ":" + y);
                         }
 
-
                         @Override
                         public void onFinish() {
+                            flagEnd = true;
                             mtxtView.setText("搜索完成");
                         }
                     }.start();
                 }
 
-            } else {
+            } else if(!isok){   //判斷位置不再範圍內，倒數暫停  並允許再次倒數
+                timer.cancel();
                 Toast.makeText(this, "沒有在指定範圍內", Toast.LENGTH_SHORT).show();
-                mtxtView.setText("沒有在指定範圍內");
+                flag = false;
             }
     }
 
     @Override
     public void onLocationChanged(Location location) {
-//        Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
         LatLng point = new LatLng(location.getLatitude(), location.getLongitude());
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(point, 17));
-        getLocation(location);
+        checkLocation(location);
     }
 
     @Override
@@ -220,4 +223,5 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             this.lng = lng;
         }
     }
+
 }
