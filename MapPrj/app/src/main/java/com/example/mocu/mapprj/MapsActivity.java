@@ -32,8 +32,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int DEFAULT_DIV_SCALE = 10;
     LocationManager logMgr;
     String bestProv;
-    long time = 10 * 1000;
-    int time2 = 5 * 1000;     //定位喪失時的緩衝時間
+    long x, y, m, n;        //倒數分秒
+    long passTime;
+    int xTime = 10;
+    long time = xTime * 1000;
+    long time2 = 5 * 1000;     //定位喪失時的緩衝時間
     boolean flag = false;   //判斷是否開始倒數，如果開始倒數不再重新判斷是否倒數
     boolean flagEnd = false;        //判斷倒數是否完成，若完成則不再進行倒數
     boolean flagBuffer = false;
@@ -117,13 +120,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(MapsActivity.this, "在指定範圍內", Toast.LENGTH_SHORT).show();
                 while (flag == false && flagEnd == false) {  //判斷沒有倒數及尚未完成搜索時執行
                     flag = true;        //設置正在倒數
-                    flagBuffer = false; //設置沒有緩衝倒數
+
+                    if (flagBuffer == true) {       //如果緩衝執行
+                        flagBuffer = false; //設置沒有緩衝倒數
+                        bufferTime.cancel();    //緩衝取消
+                    }
                     timer = new CountDownTimer(time, 1000) {    //倒數設置
                         @Override
                         public void onTick(long lastTime) {
-                            long x = lastTime / 60000;      //分
-                            long y = ((lastTime / 1000) - (x * 60));       //秒
+                            x = lastTime / 60000;      //分
+                            y = ((lastTime / 1000) - (x * 60));       //秒
                             mtxtView.setText("搜索中:" + x + ":" + y);
+                            passTime = time - lastTime;     //經過時間
                         }
 
                         @Override
@@ -140,14 +148,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 if (flag == true) {     //正在倒數
                     flag = false;       //設置沒有倒數
                     timer.cancel();
+                    time -= passTime;    //剩餘時間
                     while (flagBuffer == false) {       //判斷沒有緩衝
                         flagBuffer = true;      //設置開始緩衝
                         bufferTime = new CountDownTimer(time2, 1000) {  //緩衝設置
                             @Override
                             public void onTick(long lastTime) {
-                                long x = lastTime / 60000;      //分
-                                long y = ((lastTime / 1000) - (x * 60));       //秒
-                                mtxtView.setText("偏離範圍:" + x + ":" + y);
+                                m = lastTime / 60000;      //分
+                                n = ((lastTime / 1000) - (m * 60));       //秒
+                                mtxtView.setText("偏離範圍:" + m + ":" + n + "  搜索中:" + x + ":" + y);
                             }
 
                             @Override
