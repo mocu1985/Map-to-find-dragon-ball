@@ -36,7 +36,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     int time2 = 5 * 1000;     //定位喪失時的緩衝時間
     boolean flag = false;   //判斷是否開始倒數，如果開始倒數不再重新判斷是否倒數
     boolean flagEnd = false;        //判斷倒數是否完成，若完成則不再進行倒數
+    boolean flagBuffer = false;
     CountDownTimer timer;
+    CountDownTimer bufferTime;
 
 
     @Override
@@ -107,34 +109,60 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void checkLocation(Location location) {
-        Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
-        final boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
+        try {
+            Company myPoint = new Company(1, location.getLatitude(), location.getLongitude());
+            final boolean isok = new SearchMapService().check(myPoint, 24.72400977, 121.78756714, 100);
 
             if (isok) {  //如果在範圍內
-                Toast.makeText(this, "在指定範圍內", Toast.LENGTH_SHORT).show();
-                while(flag == false && flagEnd == false) {  //判斷範圍位置及倒數有無完成  並禁止再次倒數
-                    flag = true;
-                    timer = new CountDownTimer(time, 1000) {    //進行倒數設置
+                Toast.makeText(MapsActivity.this, "在指定範圍內", Toast.LENGTH_SHORT).show();
+                while (flag == false && flagEnd == false) {  //判斷沒有倒數及尚未完成搜索時執行
+                    flag = true;        //設置正在倒數
+                    flagBuffer = false; //設置沒有緩衝倒數
+                    timer = new CountDownTimer(time, 1000) {    //倒數設置
                         @Override
                         public void onTick(long lastTime) {
-                            long x = lastTime / 60000; //分
+                            long x = lastTime / 60000;      //分
                             long y = ((lastTime / 1000) - (x * 60));       //秒
                             mtxtView.setText("搜索中:" + x + ":" + y);
                         }
 
                         @Override
                         public void onFinish() {
-                            flagEnd = true;
                             mtxtView.setText("搜索完成");
+                            flagEnd = true;     //搜索完成
+                            flagBuffer = true;  //搜索完成不再進行緩衝
                         }
                     }.start();
                 }
 
-            } else if(!isok){   //判斷位置不再範圍內，倒數暫停  並允許再次倒數
-                timer.cancel();
-                Toast.makeText(this, "沒有在指定範圍內", Toast.LENGTH_SHORT).show();
-                flag = false;
+            } else if (!isok) {   //不在範圍內
+                Toast.makeText(MapsActivity.this, "沒有在指定範圍內", Toast.LENGTH_SHORT).show();
+                if (flag == true) {     //正在倒數
+                    flag = false;       //設置沒有倒數
+                    timer.cancel();
+                    while (flagBuffer == false) {       //判斷沒有緩衝
+                        flagBuffer = true;      //設置開始緩衝
+                        bufferTime = new CountDownTimer(time2, 1000) {  //緩衝設置
+                            @Override
+                            public void onTick(long lastTime) {
+                                long x = lastTime / 60000;      //分
+                                long y = ((lastTime / 1000) - (x * 60));       //秒
+                                mtxtView.setText("偏離範圍:" + x + ":" + y);
+                            }
+
+                            @Override
+                            public void onFinish() {
+                                mtxtView.setText("搜索失敗");
+                                flagBuffer = false;
+                            }
+                        }.start();
+
+                    }
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
