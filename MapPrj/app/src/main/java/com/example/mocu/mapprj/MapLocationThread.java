@@ -12,7 +12,8 @@ public class MapLocationThread extends Thread {
     ArrayList<String> arrayLng;
     ArrayList<String> arrayRad;
     ArrayList<String> arrayPosition;
-
+    ArrayList<String> arrayBoolean;
+    ArrayList<String> arrayTime;
 
     @Override
     public void run() {
@@ -20,13 +21,14 @@ public class MapLocationThread extends Thread {
         arrayLng = new ArrayList<>();
         arrayRad = new ArrayList<>();
         arrayPosition = new ArrayList<>();
+        arrayBoolean = new ArrayList<>();
 
         GetURLClass getURLClass = new GetURLClass();
         ParseUrlClass parseUrlClass = new ParseUrlClass();
 
         try {
             urlData = getURLClass.getUrlData();
-            parseUrlClass.parserData(urlData, arrayLat, arrayLng, arrayPosition, arrayRad);
+            parseUrlClass.parserData(urlData, arrayLat, arrayLng, arrayPosition, arrayRad, arrayTime);
         } catch (Exception e) {
             System.out.println("MapLocationThread" + e);
         }
